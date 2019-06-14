@@ -1,6 +1,7 @@
 # Retour sur le challenge Cybersec organisé par la DGSE
 
-Lien : [Challenge Richelieu](https://www.challengecybersec.fr/)
+Lien : [Challenge Richelieu](https://www.challengecybersec.fr/).
+
 Découvert grâce à un [article de ZATAZ](https://www.zataz.com/concours-dgse-richelieu/)
 
 Notes :
@@ -22,7 +23,7 @@ if (login === password) {
 Le document pdf permet d'accéder à l'étape suivante.
 
 Notes :
- - Il semble aussi possible de récupérer ce lien via une recherche google, le fichier étant indexé : `site:www.challengecybersec.fr`
+ - il semble aussi possible de récupérer ce lien via une recherche google, le fichier étant indexé : `site:www.challengecybersec.fr`
 
 ## Fichier PDF
 
@@ -363,7 +364,7 @@ Comme l'indique le message "Bravo ! Vous pouvez utiliser ce mot passe pour la su
 
 Celle-ci contient un fichier texte qui donne des instructions pour se connecter en SSH à une machine distante pour la suite du challenge.
 
-Note :
+Notes :
  - cette partie m'a permis de découvrir l'utilisation de Ghidra qui est très pratique (qui m'a cependant demandé d'installer jdk >= 11)
 
 ## Wargame
