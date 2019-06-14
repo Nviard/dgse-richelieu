@@ -1,6 +1,7 @@
 # Retour sur le challenge Cybersec organisé par la DGSE
 
 Lien : [Challenge Richelieu](https://www.challengecybersec.fr/).
+Le site d'origine n'étant plus actif, voici le [PDF](Richelieu.pdf) permettant de faire la majorité du challenge.
 
 Découvert grâce à un [article de ZATAZ](https://www.zataz.com/concours-dgse-richelieu/)
 
