@@ -167,3 +167,89 @@ Notes :
 Sources :
  - pour générer la clé privée une fois prime1 restauré : [0day.work](https://0day.work/how-i-recovered-your-private-key-or-why-small-keys-are-bad/)
  - pour rendre egcd itératif [Wikibooks](https://en.wikibooks.org/wiki/Algorithm_Implementation/Mathematics/Extended_Euclidean_algorithm)
+ 
+### Image
+
+Une fois cette clé obtenue, il est simple de déchiffrer la clé GPG puis l'image du dossier :
+
+```bash
+openssl rsautl -decrypt -inkey recovered.key -out motDePasseGPG.txt -in motDePasseGPG.txt.enc
+gpg --symmetric --decrypt lsb_RGB.png.enc -o lsb_RGB.png
+```
+
+Le nom de l'image mettant la puce à l'oreille, il faut alors extraire les bits de poids faible (lsb) de ce fichier :
+
+```python
+#coding: utf-8
+import base64
+from PIL import Image
+import array
+
+image = Image.open("lsb_RGB.png")
+
+extracted = ''
+
+pixels = image.load()
+for x in range(0,image.width):
+	for y in range(0,image.height):
+		r,g,b = pixels[x,y]
+		extracted += bin(r)[-1]
+		extracted += bin(g)[-1]
+		extracted += bin(b)[-1]
+
+print(len(extracted)/8)
+data = array.array('B')
+for i in range(len(extracted)//8):
+	byte = extracted[i*8:(i+1)*8]
+	data.append(int(byte, 2))
+
+f=open("out.png", "wb")
+data.tofile(f)
+```
+
+Le fichier obtenu débute par une représentation textuelle d'un fichier binaire (comme obtenue avec `xxd`). Il suffit alors d'en supprimer la fin et de l'extraire avec `xxd -r out.png > out2`.
+
+Sources :
+ - je me suis inspiré du code présent sur [boitaklou.fr](https://www.boiteaklou.fr/Steganography-Least-Significant-Bit.html#python-my-love) pour réaliser mon script python
+
+Notes :
+ - j'ai cru pendant quelques temps faire fausse route car j'avais parcouru mon fichier en lignes/colonnes au lieu de colonnes/lignes...
+
+### UPX
+
+En inspectant le fichier obtenu, je repère très vite le texte suivant :
+
+```
+$Info: This file is packed with the ALD executable packer http://upx.sf.net $
+$Id: ALD 3.91 Copyright (C) 1996-2013 the ALD Team. All Rights Reserved. $
+```
+
+Je cherche donc à "extraire" le fichier d'origine, mais j'obtiens le message d'erreur suivant :
+
+```
+upx: upx.txt: NotPackedException: not packed by UPX
+```
+
+Un [résultat de recherche](https://reverseengineering.stackexchange.com/questions/3335/decoding-the-upx-elf-header-file) m'apprend qu'il est fréquent de remplacer les occurences d'UPX! dans les fichiers UPX. Le message sur l'équipe ALD devient plus clair.
+
+Je remplace donc `ALD` par `UPX` dans mon fichier, mais j'obtiens l'erreur suivante :
+
+```
+upx: upx.txt: CantUnpackException: header corrupted 3
+```
+
+J'ai fini par réussir à obtenir le message `Unpacked 1 file.` en commençant par remplacer `41 4c 44` par `55 50 58` avant d'appliquer `xxd -r`.
+
+Notes :
+ - j'aurais pu éxécuter les fichier plus tôt, mais j'ai naîvement pensé qu'UPX servait à chiffrer le fichier
+ - je ne comprends toujours pas pourquoi pourquoi l'erreur `header corrupted 3` se produit.
+
+### ELF
+
+## Wargame
+
+### defi1
+
+### defi2
+
+### suite ?
