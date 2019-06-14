@@ -246,10 +246,182 @@ Notes :
 
 ### ELF
 
+Le fichier exécutable obtenu produit les messages suivants :
+
+```
+usage : ./out3.txt <mot de passe>
+```
+
+```
+Mauvais mot de passe
+```
+
+En utilisant les commandes file, strings et objdump comme indiqué sur ce [tuto](http://manoharvanga.com/hackme/), j'obtiens les adresses des chaînes d'erreur et de réussite du programme, ainsi que des instructions `lea` qui permettent de les lire.
+
+La lecture de l'assembleur n'étant pas aisée, j'utilise [Ghidra](https://ghidra-sre.org/) pour le visualiser décompilé.
+
+Aux adresses obtenues, j'obtiens le code suivant :
+
+```c
+ulong FUN_00400b20(int iParm1,undefined8 *puParm2)
+
+{
+  uint uVar1;
+  ulong uVar2;
+  
+  if (iParm1 < 2) {
+    FUN_00407840("usage : %s <mot de passe>\n",*puParm2);
+    uVar2 = 2;
+  }
+  else {
+  	//valeur testée pour afficher le message de réussite
+    uVar1 = FUN_00400aae(puParm2[1]);
+    uVar2 = (ulong)uVar1;
+    if (uVar1 == 0) {
+      FUN_00408010("Mauvais mot de passe");
+    }
+    else {
+      FUN_00408010("Bravo ! Vous pouvez utiliser ce mot passe pour la suite ;-)");
+      uVar2 = 0;
+    }
+  }
+  return uVar2;
+}
+```
+
+Je regarde donc en détail le code de la fonction `FUN_00400aae` :
+
+```c
+ulong FUN_00400aae(byte *pbParm1)
+
+{
+  int iVar1;
+  undefined8 uVar2;
+  ulong uVar3;
+  byte bVar4;
+  long lVar5;
+  byte *pbVar6;
+  byte bVar7;
+  
+  lVar5 = -1;
+  pbVar6 = pbParm1;
+  //boucle comptant la longeur de la chaîne entrée
+  do {
+    if (lVar5 == 0) break;
+    lVar5 = lVar5 + -1;
+    bVar4 = *pbVar6;
+    pbVar6 = pbVar6 + 1;
+  } while (bVar4 != 0);
+  uVar2 = 0;
+  //le résultat est comparé à -32
+  //en comptant l'initialisation à -1 et le \0 final, on cherche une chaîne de 30 caractères
+  if (lVar5 == -0x20) {
+    bVar4 = *pbParm1;
+    if (bVar4 != 0) {
+      //adresse de la chaîne utilisée pour vérifier le mot de passe
+      pbVar6 = &DAT_004898c0;
+      pbParm1 = pbParm1 + 1;
+      uVar3 = 1;
+      //initialisation
+      bVar7 = 0x33;
+      //boucle de vérification de la chaîne
+      do {
+        iVar1 = (int)uVar3;
+        uVar3 = 0;
+        if (iVar1 != 0) {
+          //XOR avec la valeur précédente
+          uVar3 = (ulong)((bVar4 ^ bVar7) == *pbVar6);
+        }
+        bVar7 = *pbVar6;
+        bVar4 = *pbParm1;
+        pbVar6 = pbVar6 + 1;
+        pbParm1 = pbParm1 + 1;
+      } while (bVar4 != 0);
+      return uVar3;
+    }
+    uVar2 = 1;
+  }
+  return uVar2;
+}
+```
+
+Ce script m'a donc permis de truver le mot de passe correct :
+
+```python
+numbers = [
+# initialisation
+'33',
+# 30 valeurs suivant &DAT_004898c0
+...
+]
+
+for a, n in enumerate(numbers[:-1]):
+	print(chr(int(n, 16) ^ int(numbers[a+1], 16)))
+```
+
+Comme l'indique le message "Bravo ! Vous pouvez utiliser ce mot passe pour la suite ;-)", le mot de passe trouvé permet de déchiffre l'archive qui était fournie avec les autres fichiers dans l'étape précédente.
+
+Celle-ci contient un fichier texte qui donne des instructions pour se connecter en SSH à une machine distante pour la suite du challenge.
+
+Note :
+ - cette partie m'a permis de découvrir l'utilisation de Ghidra qui est très pratique (qui m'a cependant demandé d'installer jdk >= 11)
+
 ## Wargame
+
+Les identifiants obtenus permettent d'ouvrir une connexion qui affiche le message suivant :
+
+```
+Partie Wargame du CTF Richelieu
+
+Outils disponibles:
+*******************
+
+  * gdb (avec peda)
+  * python 2.7
+  * pwnlib
+  * checksec
+  * vim
+  * emacs
+  * nano
+  * ltrace
+  * strace
+  * ...
+
+ATTENTION : les connexions sont coupées et les fichiers sont détruits
+automatiquement au bout de 1 heure.
+Pensez à sauvegarder vos fichiers sur un autre poste pour ne pas les perdre.
+```
+
+
+Je précise pour la suite que je connaiss très mal gdb, ltrace et strace, et que je n'ai jamais utilisé pwnlib ni checksec, la suite s'annonce difficile.
 
 ### defi1
 
+Un `ls -l` donne les informations suivantes :
+
+```
+total 16
+-r-------- 1 defi1-drapeau defi1-drapeau  133 Apr 26 14:06 drapeau.txt
+-r-sr-sr-x 1 defi1-drapeau defi1-drapeau 8752 May 10 10:50 prog.bin
+```
+
+Je suppose donc qu'il faut ouvrir le fichier drapeau.txt grâce aux droits de l'éxécution de prog.bin.
+
+Ce dernier propose un choix entre plusieurs commandes, dont l'affichage d'un train. Je repère un appel à `sl` grâce à ltrace : `system("sl"`.
+
+En ajoutant le dossier courant au `$PATH` et en créeant un fichier exéxutable `sl` contenant `cat drapeau.txt`, j'obtiens les identifiants de l'étape suivante.
+
+Notes :
+ - j'ai perdu beaucoup de temps sur ce défi, en cherchant à comprendre comment je pourrais utiliser la mention `RELRO:    Partial RELRO` obtenue avec `checksec` alors que la solution était bien plus simple
+
 ### defi2
 
+Le défi suivant est de la même forme. Le programme permet de vérifier si un couple login / password vérifie certaines caractéristiques. 
+
+J'ai pu remarquer que la longueur des chaines entrées n'était pas vérifiée. J'ai donc provoqué un `buffer overflow` avec une chaîne suffisamment longue, le programme produisant ainsi une segfault.
+
+La résolution de ce défi passait donc par l'injection de code assembleur après la fin du buffer. Quelques recherches à ce sujet m'ont amené sur ce [tuto](https://beta.hackndo.com/return-oriented-programming/), mais cela dépasse mes compétences. Je me suis donc arrêté à ce niveau du challenge.
+
 ### suite ?
+
+Je ne sais pas combien de défis il me restait, ni si d'autres épreuves suivent encore celles-ci, mais je suis preneur de toutes informations à ce sujet.
